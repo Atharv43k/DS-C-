@@ -1,69 +1,212 @@
-#include<iostream>
-#define MAX 5
+#include <iostream>
+#include <stack>
+#include <string>
+#include <map>
+#include <cctype>
+#include <sstream>
+#include <cmath>
+
 using namespace std;
 
-class Stack
+// Return precedence of operator
+int precedence(char op)
 {
-  public:
-    int A[MAX];
-    int Top;
-    Stack()
+    if (op == '+' || op == '-')
+        return 1;
+
+    if (op == '*' || op == '/')
+        return 2;
+
+    if (op == '^')
+        return 3;
+
+    return 0;
+}
+
+// Check whether character is an operator
+bool isOperator(char ch)
+{
+    return ch == '+' || ch == '-' ||
+           ch == '*' || ch == '/' ||
+           ch == '^';
+}
+
+// Convert infix to postfix
+string infixToPostfix(string infix)
+{
+    stack<char> st;
+    string postfix = "";
+
+    for (int i = 0; i < infix.length(); i++)
     {
-      Top = -1;
+        char ch = infix[i];
+
+        // Ignore spaces
+        if (ch == ' ')
+            continue;
+
+        // Operand: A-Z or number
+        if (isalnum(ch))
+        {
+            postfix += ch;
+            postfix += ' ';
+        }
+
+        // Opening bracket
+        else if (ch == '(')
+        {
+            st.push(ch);
+        }
+
+        // Closing bracket
+        else if (ch == ')')
+        {
+            while (!st.empty() && st.top() != '(')
+            {
+                postfix += st.top();
+                postfix += ' ';
+                st.pop();
+            }
+
+            if (!st.empty())
+                st.pop();
+        }
+
+        // Operator
+        else if (isOperator(ch))
+        {
+            while (!st.empty() &&
+                   st.top() != '(' &&
+                   precedence(st.top()) >= precedence(ch))
+            {
+                postfix += st.top();
+                postfix += ' ';
+                st.pop();
+            }
+
+            st.push(ch);
+        }
     }
-  
-  void push(int value)
-  {
-    if(Top == MAX-1)
-      {
-      cout<<"Stack is Full i.e. Overflow\n";
-      }
-    else
-      {
-        Top++;
-        A[Top]=value;
-        cout<<A[Top]<<"Value is pushed in Stack\n";
-      }
-  }
-  
-  void pop()
-  {
-    if(Top==-1)
+
+    // Empty remaining stack
+    while (!st.empty())
     {
-      cout<<"Stack is Empty i.e. Underflow\n";
+        postfix += st.top();
+        postfix += ' ';
+        st.pop();
     }
-    else
-      {
-      cout<<A[Top]<<" is popped From Stack.\n";
-      Top--;
-      } 
-  }
-  
-  void display()
-  {
-    if(Top == -1)
+
+    return postfix;
+}
+
+// Evaluate postfix
+double evaluatePostfix(string postfix, map<char, double> values)
+{
+    stack<double> st;
+
+    stringstream ss(postfix);
+    string token;
+
+    while (ss >> token)
     {
-      cout<<"Stack is empty.\n";
+        char ch = token[0];
+
+        // If token is a variable
+        if (isalpha(ch))
+        {
+            st.push(values[ch]);
+        }
+
+        // If token is a number
+        else if (isdigit(ch))
+        {
+            st.push(stod(token));
+        }
+
+        // If token is an operator
+        else
+        {
+            double b = st.top();
+            st.pop();
+
+            double a = st.top();
+            st.pop();
+
+            switch (ch)
+            {
+                case '+':
+                    st.push(a + b);
+                    break;
+
+                case '-':
+                    st.push(a - b);
+                    break;
+
+                case '*':
+                    st.push(a * b);
+                    break;
+
+                case '/':
+                    if (b == 0)
+                    {
+                        cout << "Error: Division by zero!" << endl;
+                        return 0;
+                    }
+                    st.push(a / b);
+                    break;
+
+                case '^':
+                    st.push(pow(a, b));
+                    break;
+            }
+        }
     }
-    else
-    {
-      for(int i=Top;i>-1;i--)
-      {
-        cout<<A[i]<<"\t";
-      }
-    }
-  }
-};
+
+    return st.top();
+}
 
 int main()
 {
-  Stack s1;
-  s1.push(10);
-  s1.push(20);
-  s1.push(30);
-  s1.push(40);
-  s1.pop();
-  s1.push(50);
-  s1.display();
-  return 0;
+    string infix;
+
+    cout << "Enter marks formula: ";
+    getline(cin, infix);
+
+    // Convert infix to postfix
+    string postfix = infixToPostfix(infix);
+
+    cout << "\nPostfix expression: " << postfix << endl;
+
+    // Store values of variables
+    map<char, double> values;
+
+    // Find variables in expression
+    for (char ch = 'A'; ch <= 'Z'; ch++)
+    {
+        bool found = false;
+
+        for (char c : infix)
+        {
+            if (c == ch)
+            {
+                found = true;
+                break;
+            }
+        }
+
+        if (found)
+        {
+            cout << "Enter value of " << ch << ": ";
+            cin >> values[ch];
+        }
+    }
+
+    // Evaluate postfix
+    double result = evaluatePostfix(postfix, values);
+
+    cout << "\nFinal Result = " << result << endl;
+
+    return 0;
 }
+
+
